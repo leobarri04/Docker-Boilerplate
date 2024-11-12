@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    container_name: postgresTest
+    environment:
+      POSTGRES_PASSWORD: example123asd
+      POSTGRES_USER: postgresUser
+      POSTGRES_DB: test
+    ports:
+       - 5431:5432
+    volumes:
+      - ./db_data:/docker-entrypoint-initdb.d
+  sqlserver:    
+    image: mcr.microsoft.com/mssql/server:2022-CU12-ubuntu-22.04    
+    container_name: sqlserver_express    
+    environment:      
+      - ACCEPT_EULA=Y      
+      - SA_PASSWORD=YourStrongPassword123   
+      - MSSQL_LCID=1033
+      - TZ=Etc/UTC    
+    ports:      
+      - "1433:1433"    
+    volumes:
+      - ./sql-server-scripts:/tmp
+    command: >
+      /bin/bash -c "
+      /opt/mssql/bin/sqlservr &
+
+      until /opt/mssql-tools/bin/sqlcmd -l 1 -S sqlserver -U sa -P 'YourStrongPassword123' -Q 'SELECT 1' &> /dev/null; do
+        >&2 echo '>>>>>>>>>> SQL Server is unavailable - sleeping <<<<<<<<<<';
+        sleep 5;
+      done;
+      echo '>>>>>>>>>> SQL Server is ready - executing init script <<<<<<<<<<';
+      /opt/mssql-tools/bin/sqlcmd -l 5 -S sqlserver -U sa -P 'YourStrongPassword123' -d master -i /tmp/init.sql;
+      
+      sleep infinity;"
